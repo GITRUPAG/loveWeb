@@ -52,13 +52,42 @@ export default function InvitePage() {
   const { id } = useParams();
   const router = useRouter();
 
+  // ✅ CRITICAL: Mount guard to prevent SSR issues
+  const [mounted, setMounted] = useState(false);
+
   const [session, setSession] = useState<any>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  
+  // ✅ FIX: Client-side only animation state
+  const [petals, setPetals] = useState<{x: number; y: number; d: number}[]>([]);
+
+  // ✅ Mount guard effect - MUST BE FIRST
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // ✅ Initialize floating petals on client only
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    setPetals(
+      Array.from({ length: 6 }).map(() => ({
+        x: Math.random() * w,
+        y: h + 120,
+        d: 15 + Math.random() * 10
+      }))
+    );
+  }, [mounted]);
 
   useEffect(() => {
+    if (!mounted) return;
+    
     const fetchSession = async () => {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/rose-sessions/${id}`
@@ -76,7 +105,7 @@ export default function InvitePage() {
     };
 
     fetchSession();
-  }, [id, router]);
+  }, [id, router, mounted]);
 
   const submitResponse = async () => {
     if (!selectedId) return;
@@ -90,6 +119,11 @@ export default function InvitePage() {
 
     router.push(`/games/day1/rose-picker/result/${id}`);
   };
+
+  // ✅ CRITICAL: Prevent SSR rendering
+  if (!mounted) {
+    return null;
+  }
 
   if (loading) {
     return (
@@ -132,19 +166,19 @@ export default function InvitePage() {
           className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-gradient-radial from-pink-200/30 via-transparent to-transparent rounded-full blur-3xl"
         />
         
-        {/* Floating petals */}
-        {[...Array(6)].map((_, i) => (
+        {/* Floating petals - ✅ FIXED: Client-only rendering */}
+        {petals.map((petal, i) => (
           <motion.div
             key={i}
-            initial={{ y: -100, x: typeof window !== 'undefined' ? Math.random() * window.innerWidth : 0, rotate: 0, opacity: 0 }}
+            initial={{ y: -100, x: petal.x, rotate: 0, opacity: 0 }}
             animate={{ 
-              y: typeof window !== 'undefined' ? window.innerHeight + 100 : 1000, 
-              x: typeof window !== 'undefined' ? Math.random() * window.innerWidth : 0,
+              y: petal.y, 
+              x: petal.x - 150,
               rotate: 360,
               opacity: [0, 0.6, 0]
             }}
             transition={{ 
-              duration: 15 + Math.random() * 10, 
+              duration: petal.d, 
               repeat: Infinity, 
               delay: i * 2,
               ease: "linear"
