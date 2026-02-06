@@ -47,12 +47,40 @@ export default function ResultPage() {
   const { id } = useParams();
   const router = useRouter();
 
+  // ✅ CRITICAL: Mount guard to prevent SSR issues
+  const [mounted, setMounted] = useState(false);
+  
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [copySuccess, setCopySuccess] = useState(false);
   const [shareLink, setShareLink] = useState("");
+  
+  // ✅ FIX: Client-side only animation state
+  const [petals, setPetals] = useState<{x: number; y: number; d: number}[]>([]);
+
+  // ✅ Mount guard effect - MUST BE FIRST
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // ✅ Initialize floating petals on client only
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1000;
+    
+    setPetals(
+      Array.from({ length: 8 }).map(() => ({
+        x: Math.random() * w,
+        y: Math.random() * 100 - 100,
+        d: 12 + Math.random() * 8
+      }))
+    );
+  }, [mounted]);
 
   useEffect(() => {
+    if (!mounted) return;
+    
     const fetchSession = async () => {
       try {
         const res = await fetch(
@@ -66,7 +94,12 @@ export default function ResultPage() {
         }
 
         setSession(data);
-        setShareLink(`${window.location.origin}/games/day1/rose-picker/result/${id}`);
+        
+        // ✅ FIX: Safe window access
+        if (typeof window !== 'undefined') {
+          setShareLink(`${window.location.origin}/games/day1/rose-picker/result/${id}`);
+        }
+        
         setLoading(false);
       } catch (err) {
         console.error("Error fetching session:", err);
@@ -74,7 +107,7 @@ export default function ResultPage() {
     };
 
     fetchSession();
-  }, [id, router]);
+  }, [id, router, mounted]);
 
   const roseA = ROSES.find((r) => r.id === session?.roseFromA);
   const roseB = ROSES.find((r) => r.id === session?.roseFromB);
@@ -82,6 +115,9 @@ export default function ResultPage() {
   const shareText = `💖 Two Roses, One Story 🌹\n\nI chose "${roseA?.name}"\nThey chose "${roseB?.name}"\n\nSee our love moment here 👇`;
 
   const handleNativeShare = async () => {
+    // ✅ FIX: Protected navigator usage
+    if (typeof navigator === "undefined") return;
+    
     if (navigator.share) {
       try {
         await navigator.share({
@@ -98,19 +134,28 @@ export default function ResultPage() {
   };
 
   const handleWhatsAppShare = () => {
-    // Fixed: Combine text and link, then encode properly
+    // ✅ FIX: Protected window usage
+    if (typeof window === "undefined") return;
+    
     const message = `${shareText}\n\n${shareLink}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
   };
 
   const handleCopyLink = () => {
-    // Fixed: Copy the full message with emojis and link
+    // ✅ FIX: Protected navigator usage
+    if (typeof navigator === "undefined") return;
+    
     const fullMessage = `${shareText}\n\n${shareLink}`;
     navigator.clipboard.writeText(fullMessage);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
   };
+
+  // ✅ CRITICAL: Prevent SSR rendering
+  if (!mounted) {
+    return null;
+  }
 
   if (loading) {
     return (
@@ -126,19 +171,19 @@ export default function ResultPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-red-50 text-slate-900 flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden">
       
-      {/* Background Floating Petals */}
+      {/* Background Floating Petals - ✅ FIXED: Client-only rendering */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(8)].map((_, i) => (
+        {petals.map((petal, i) => (
           <motion.div
             key={i}
-            initial={{ y: -100, x: Math.random() * 1000, opacity: 0 }}
+            initial={{ y: petal.y, x: petal.x, opacity: 0 }}
             animate={{ 
               y: 1200, 
-              x: (Math.random() * 1000) - 200, 
+              x: petal.x - 200, 
               opacity: [0, 0.4, 0],
               rotate: 360 
             }}
-            transition={{ duration: 12 + i * 2, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: petal.d, repeat: Infinity, ease: "linear" }}
             className="absolute text-3xl"
           >
             🌸

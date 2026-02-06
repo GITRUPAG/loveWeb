@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion as m, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Heart, CheckCircle2, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -14,14 +14,42 @@ const ROSES = [
 
 export default function RosePickerPage() {
   const router = useRouter();
+  
+  // CRITICAL: Mounted guard to prevent SSR/hydration errors
+  const [mounted, setMounted] = useState(false);
+  
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Safe window-based values calculated client-side only
+  const [petals, setPetals] = useState<{x: number, y: number, d: number}[]>([]);
 
   const selectedRose = ROSES.find(r => r.id === selectedId);
+
+  // Mount guard
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Calculate petal positions safely after mount
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    setPetals(
+      Array.from({ length: 6 }).map(() => ({
+        x: Math.random() * w,
+        y: h + 100,
+        d: 15 + Math.random() * 10
+      }))
+    );
+  }, [mounted]);
 
   const createInviteLink = async () => {
     if (!selectedId) return;
@@ -43,6 +71,7 @@ export default function RosePickerPage() {
 
       const data = await res.json();
 
+      // Safe to use window.location in event handler
       const link = `${window.location.origin}/games/day1/rose-picker/invite/${data.id}`;
 
       setInviteLink(link);
@@ -53,6 +82,11 @@ export default function RosePickerPage() {
       setLoading(false);
     }
   };
+
+  // Don't render until mounted (prevents SSR window errors)
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-red-50 text-slate-900 flex flex-col items-center p-4 md:p-6 relative overflow-hidden">
@@ -76,19 +110,19 @@ export default function RosePickerPage() {
           className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-gradient-radial from-pink-200/30 via-transparent to-transparent rounded-full blur-3xl"
         />
         
-        {/* Floating petals */}
-        {[...Array(6)].map((_, i) => (
+        {/* Floating petals - SAFE version with no window in JSX */}
+        {petals.map((p, i) => (
           <m.div
             key={i}
-            initial={{ y: -100, x: Math.random() * window.innerWidth, rotate: 0, opacity: 0 }}
+            initial={{ y: -100, x: p.x, rotate: 0, opacity: 0 }}
             animate={{ 
-              y: typeof window !== 'undefined' ? window.innerHeight + 100 : 1000, 
-              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+              y: p.y,
+              x: p.x,
               rotate: 360,
               opacity: [0, 0.6, 0]
             }}
             transition={{ 
-              duration: 15 + Math.random() * 10, 
+              duration: p.d,
               repeat: Infinity, 
               delay: i * 2,
               ease: "linear"
@@ -319,6 +353,8 @@ export default function RosePickerPage() {
                   onClick={() => {
                     setIsRevealed(false);
                     setSelectedId(null);
+                    setInviteLink(null);
+                    setError(null);
                   }}
                 >
                   <RotateCcw size={20} strokeWidth={2.5} /> 
