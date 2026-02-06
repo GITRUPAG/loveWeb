@@ -237,7 +237,7 @@ export default function ProposalResultPage() {
                     style={{
                       transform: `rotate(${angle}deg) translateY(-50px) scale(0.8)`,
                     }}
-                    className="absolute w-1.5 h-1.5 sm:w-2 sm:h-2 bg-yellow-300 rounded-full"
+                    
                   />
                 ))}
               </motion.div>
