@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/* If you specifically want to customize base styles, you can do so here */
+@theme {
+  --color-rose-50: #fff1f2;
+  --color-rose-500: #f43f5e;
+  --color-rose-600: #e11d48;
+}
+
+:root {
+  --background: #fff1f2;
+  --foreground: #171717;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
