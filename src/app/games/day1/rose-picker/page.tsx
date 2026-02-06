@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { motion as m, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, Heart, CheckCircle2, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Sparkles, Heart, CheckCircle2, RotateCcw, Copy, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const ROSES = [
@@ -24,6 +24,7 @@ export default function RosePickerPage() {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   
   // Safe window-based values calculated client-side only
   const [petals, setPetals] = useState<{x: number, y: number, d: number}[]>([]);
@@ -80,6 +81,33 @@ export default function RosePickerPage() {
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!inviteLink) return;
+    
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = inviteLink;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err2) {
+        console.error('Fallback copy failed:', err2);
+      }
+      document.body.removeChild(textArea);
     }
   };
 
@@ -163,7 +191,7 @@ export default function RosePickerPage() {
       </div>
 
       {/* MAIN STAGE */}
-      <div className="flex-1 w-full max-w-4xl flex flex-col items-center justify-center z-10 relative">
+      <div className="flex-1 w-full max-w-4xl flex flex-col items-center justify-center z-10 relative pb-8">
         <AnimatePresence mode="wait">
           {!isRevealed ? (
             <m.div 
@@ -263,7 +291,7 @@ export default function RosePickerPage() {
               initial={{ opacity: 0, scale: 0.8, rotateY: -20 }}
               animate={{ opacity: 1, scale: 1, rotateY: 0 }}
               transition={{ duration: 0.7, type: "spring" }}
-              className="w-full max-w-2xl bg-white/95 backdrop-blur-xl rounded-[3rem] p-8 md:p-14 shadow-2xl border-2 border-rose-100 text-center relative overflow-hidden"
+              className="w-full max-w-2xl bg-white/95 backdrop-blur-xl rounded-[3rem] p-6 md:p-14 shadow-2xl border-2 border-rose-100 text-center relative overflow-hidden"
             >
               {/* Decorative corners */}
               <div className="absolute top-0 left-0 w-32 h-32 border-t-2 border-l-2 border-rose-200/50 rounded-tl-[3rem]" />
@@ -316,7 +344,7 @@ export default function RosePickerPage() {
                 transition={{ delay: 0.6, duration: 0.6 }}
               >
                 <p 
-                  className="text-xl md:text-2xl lg:text-3xl text-slate-800 leading-relaxed mb-12 px-4"
+                  className="text-lg md:text-2xl lg:text-3xl text-slate-800 leading-relaxed mb-8 md:mb-12 px-2 md:px-4"
                   style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic" }}
                 >
                   "{selectedRose?.msg}"
@@ -327,12 +355,12 @@ export default function RosePickerPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
-                className="flex flex-col md:flex-row gap-4 mt-8"
+                className="flex flex-col md:flex-row gap-3 md:gap-4 mt-6 md:mt-8"
               >
                 <m.button 
                   whileHover={{ scale: 1.02, boxShadow: `0 20px 40px ${selectedRose?.id === 3 ? '#64748b' : selectedRose?.color}40` }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 py-5 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-4 md:py-5 rounded-2xl font-bold flex items-center justify-center gap-2 md:gap-3 shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
                   style={{ 
                     backgroundColor: selectedRose?.id === 3 ? '#64748b' : selectedRose?.color,
                     color: 'white',
@@ -341,23 +369,24 @@ export default function RosePickerPage() {
                   onClick={createInviteLink}
                   disabled={loading}
                 >
-                  <CheckCircle2 size={20} strokeWidth={2.5} /> 
-                  <span>{loading ? "Creating link..." : "Send This Rose"}</span>
+                  <CheckCircle2 size={18} strokeWidth={2.5} /> 
+                  <span>{loading ? "Creating..." : "Send This Rose"}</span>
                 </m.button>
                 
                 <m.button 
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-8 py-5 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all shadow-lg"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 md:px-8 py-4 md:py-5 rounded-2xl font-bold flex items-center justify-center gap-2 md:gap-3 transition-all shadow-lg text-sm md:text-base"
                   style={{ fontFamily: "'Montserrat', sans-serif" }}
                   onClick={() => {
                     setIsRevealed(false);
                     setSelectedId(null);
                     setInviteLink(null);
                     setError(null);
+                    setCopied(false);
                   }}
                 >
-                  <RotateCcw size={20} strokeWidth={2.5} /> 
+                  <RotateCcw size={18} strokeWidth={2.5} /> 
                   <span>Choose Again</span>
                 </m.button>
               </m.div>
@@ -368,31 +397,39 @@ export default function RosePickerPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="mt-8 bg-rose-50 border-2 border-rose-200 rounded-2xl p-5 text-left"
+                  className="mt-6 md:mt-8 bg-rose-50 border-2 border-rose-200 rounded-2xl p-4 md:p-5 text-left"
                 >
-                  <p className="text-sm font-bold text-rose-700 mb-3 flex items-center gap-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  <p className="text-xs md:text-sm font-bold text-rose-700 mb-3 flex items-center gap-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     <Heart size={16} fill="currentColor" />
                     💌 Send this link to your partner
                   </p>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       readOnly
                       value={inviteLink}
-                      className="flex-1 px-4 py-3 rounded-xl border-2 border-rose-200 text-sm bg-white focus:outline-none focus:border-rose-400 transition-colors"
+                      className="flex-1 px-3 md:px-4 py-2.5 md:py-3 rounded-xl border-2 border-rose-200 text-xs md:text-sm bg-white focus:outline-none focus:border-rose-400 transition-colors"
                       style={{ fontFamily: "'Montserrat', sans-serif" }}
+                      onClick={(e) => (e.target as HTMLInputElement).select()}
                     />
                     <m.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        navigator.clipboard.writeText(inviteLink);
-                        // Optional: Add a toast notification here
-                      }}
-                      className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-sm font-bold shadow-lg transition-colors"
+                      onClick={handleCopyLink}
+                      className="px-5 md:px-6 py-2.5 md:py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs md:text-sm font-bold shadow-lg transition-colors flex items-center justify-center gap-2 min-w-[100px]"
                       style={{ fontFamily: "'Montserrat', sans-serif" }}
                     >
-                      Copy
+                      {copied ? (
+                        <>
+                          <Check size={16} />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={16} />
+                          <span>Copy</span>
+                        </>
+                      )}
                     </m.button>
                   </div>
                 </m.div>
@@ -403,7 +440,7 @@ export default function RosePickerPage() {
                 <m.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="mt-4 text-sm text-red-600 font-medium text-center"
+                  className="mt-4 text-xs md:text-sm text-red-600 font-medium text-center"
                   style={{ fontFamily: "'Montserrat', sans-serif" }}
                 >
                   {error}
@@ -418,9 +455,9 @@ export default function RosePickerPage() {
                   opacity: [0.5, 1, 0.5]
                 }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="absolute -top-6 -right-6 text-amber-400"
+                className="absolute -top-4 md:-top-6 -right-4 md:-right-6 text-amber-400"
               >
-                <Sparkles size={48} strokeWidth={1.5} />
+                <Sparkles size={36} strokeWidth={1.5} className="md:w-12 md:h-12" />
               </m.div>
               
               <m.div 
@@ -430,9 +467,9 @@ export default function RosePickerPage() {
                   opacity: [0.5, 1, 0.5]
                 }}
                 transition={{ duration: 2.5, repeat: Infinity, delay: 0.5 }}
-                className="absolute -bottom-6 -left-6 text-rose-400"
+                className="absolute -bottom-4 md:-bottom-6 -left-4 md:-left-6 text-rose-400"
               >
-                <Sparkles size={40} strokeWidth={1.5} />
+                <Sparkles size={32} strokeWidth={1.5} className="md:w-10 md:h-10" />
               </m.div>
             </m.div>
           )}
