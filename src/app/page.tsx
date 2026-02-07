@@ -11,6 +11,7 @@ export default function EnhancedLanding() {
   const opacity = useTransform(scrollY, [0, 200], [1, 0]);
 
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [visits, setVisits] = useState<number | null>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -21,6 +22,35 @@ export default function EnhancedLanding() {
     };
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  useEffect(() => {
+    const countVisit = async () => {
+      try {
+        const key = "visited_homepage";
+        const lastVisit = localStorage.getItem(key);
+
+        // if visited within 24h → don't increment
+        if (lastVisit && Date.now() - Number(lastVisit) < 24 * 60 * 60 * 1000) {
+          const res = await fetch("https://api.countapi.xyz/get/surprisewithcode/homepage");
+          const data = await res.json();
+          setVisits(data.value);
+          return;
+        }
+
+        // first visit → increment
+        const res = await fetch("https://api.countapi.xyz/hit/surprisewithcode/homepage");
+        const data = await res.json();
+        setVisits(data.value);
+
+        localStorage.setItem(key, Date.now().toString());
+
+      } catch (e) {
+        console.log("counter failed");
+      }
+    };
+
+    countVisit();
   }, []);
 
   return (
@@ -275,15 +305,6 @@ export default function EnhancedLanding() {
                         initial={{ opacity: 0 }}
                         whileHover={{ opacity: 1 }}
                       />
-
-                      {/* Day number badge - more visible */}
-                      {/* <motion.div 
-                        className="absolute -top-2 -right-2 w-7 h-7 bg-gradient-to-br from-slate-900 to-slate-700 text-white text-xs font-black rounded-full flex items-center justify-center shadow-xl border-2 border-white z-10"
-                        whileHover={{ scale: 1.3, rotate: 360 }}
-                        transition={{ duration: 0.4 }}
-                      >
-                        {day.day}
-                      </motion.div> */}
                       
                       {/* Icon with continuous gentle animation */}
                       <motion.div 
@@ -322,7 +343,7 @@ export default function EnhancedLanding() {
               </div>
 
               {/* Unlock hint with pulse */}
-              <motion.p
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.8 }}
@@ -335,7 +356,7 @@ export default function EnhancedLanding() {
                   <Lock size={11} className="text-rose-400" />
                 </motion.div>
                 Each day unlocks at midnight
-              </motion.p>
+              </motion.div>
             </motion.div>
           </motion.div>
           
@@ -513,6 +534,28 @@ export default function EnhancedLanding() {
                 </motion.div>
               </motion.button>
             </Link>
+
+            {/* Visitor Counter - NEW */}
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.3, duration: 0.6 }}
+              className="text-sm text-rose-500 font-semibold flex items-center gap-2 min-h-[24px]"
+            >
+              {visits ? (
+                <>
+                  <motion.span
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    💕
+                  </motion.span>
+                  {visits.toLocaleString()} couples already started their story
+                </>
+              ) : (
+                <span className="text-slate-400 text-xs">Loading...</span>
+              )}
+            </motion.div>
             
             {/* Trust badges */}
             <motion.div 
