@@ -67,8 +67,16 @@ export default function CreateProposalPage() {
       setProposalId(data.id);
       setIsUnlocked(data.unlocked);
 
-      // Do NOT generate link here — backend will send correct link after payment
-      setShowPaymentModal(true);
+      // Secure backend unlock - generates token and returns share link
+      const unlockRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/proposal/free-unlock/${data.id}`,
+        { method: "POST" }
+      );
+
+      const unlockData = await unlockRes.json();
+
+      setShareLink(unlockData.shareLink);
+      setIsUnlocked(true);
     } catch (err) {
       console.error("Failed to create proposal:", err);
       alert("Failed to create proposal. Please try again.");
