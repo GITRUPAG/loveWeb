@@ -359,7 +359,7 @@ export default function ProposalResultPage() {
                   </motion.button>
 
                   <button
-                    onClick={() => router.push("/proposal/create")} 
+                    onClick={() => router.push("/propose/create")} 
                     className="text-slate-500 hover:text-rose-500 transition-colors text-sm py-2 flex items-center justify-center gap-2"
                   >
                     <Send size={14} className="sm:w-4 sm:h-4" />
